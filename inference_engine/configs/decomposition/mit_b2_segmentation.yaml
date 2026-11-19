@@ -1,0 +1,211 @@
+# Key prefix for segmentation (UperNet) checkpoints: backbone.model.{key}
+#
+# MiT-B2 architecture:
+#   4 stages, layers=[3, 4, 6, 3], dims=[64, 128, 320, 512]
+#   num_heads=[1, 2, 5, 8],  sr_ratios=[8, 4, 2, 1]
+#
+# Layer types decomposed per stage/block:
+#
+#   stages.{s}.1: Patch embedding (implemented as Linear/1x1 Conv2d
+#                 via Unfold+Linear). Shape [out_ch, in_ch, 1, 1].
+#                 Decomposed as 'linear' (squeezes 1x1 kernel).
+#
+#   to_q / to_out: Query and output projections. Shape [D, D, 1, 1].
+#                  Decomposed as attention_query / attention_output.
+#
+#   to_kv: Fused key+value with sequence reduction conv.
+#          Shape [2D, D, sr, sr] where sr = sr_ratio.
+#          Decomposed as conv2d (one component per output channel).
+#          For stage 3 sr=1 so shape is [1024, 512, 1, 1],
+#          still valid as conv2d (flattens to [1024, 512]).
+#
+#   net.0 / net.3: FFN fc1 [4D, D] and fc2 [D, 4D]. Decomposed as linear.
+#
+#   net.1.net.0: Mix-FFN depthwise 3x3 conv [4D, 1, 3, 3].
+#                Decomposed as depthwise_conv.
+#
+#   net.1.net.1: Mix-FFN pointwise 1x1 conv [4D, 4D, 1, 1].
+#                Decomposed as linear (squeezes 1x1 kernel).
+#
+# Skipped:
+#   *.norm.*: LayerNorm weights (1D)
+#   *.head.*: Classification head
+#   *.pos_bias.*: Positional encoding (if present : MiT has none)
+
+name: MiT_B2_Segmentation
+architecture: mit_b2
+
+templates:
+
+  # ── Stage 0 ─ 3 blocks, D=64, sr_ratio=8 ───────────────────────────────────
+  - pattern: "backbone.model.stages.0.1.weight"
+    type: linear
+
+  - pattern: "backbone.model.stages.0.2.{b}.0.fn.to_q.weight"
+    indices:
+      b: ${range:3}
+    type: attention_query
+
+  - pattern: "backbone.model.stages.0.2.{b}.0.fn.to_kv.weight"
+    indices:
+      b: ${range:3}
+    type: conv2d
+
+  - pattern: "backbone.model.stages.0.2.{b}.0.fn.to_out.weight"
+    indices:
+      b: ${range:3}
+    type: attention_output
+
+  - pattern: "backbone.model.stages.0.2.{b}.1.fn.net.0.weight"
+    indices:
+      b: ${range:3}
+    type: linear
+
+  - pattern: "backbone.model.stages.0.2.{b}.1.fn.net.1.net.0.weight"
+    indices:
+      b: ${range:3}
+    type: depthwise_conv
+
+  - pattern: "backbone.model.stages.0.2.{b}.1.fn.net.1.net.1.weight"
+    indices:
+      b: ${range:3}
+    type: linear
+
+  - pattern: "backbone.model.stages.0.2.{b}.1.fn.net.3.weight"
+    indices:
+      b: ${range:3}
+    type: linear
+
+  # ── Stage 1 ─ 4 blocks, D=128, sr_ratio=4 ──────────────────────────────────
+  - pattern: "backbone.model.stages.1.1.weight"
+    type: linear
+
+  - pattern: "backbone.model.stages.1.2.{b}.0.fn.to_q.weight"
+    indices:
+      b: ${range:4}
+    type: attention_query
+
+  - pattern: "backbone.model.stages.1.2.{b}.0.fn.to_kv.weight"
+    indices:
+      b: ${range:4}
+    type: conv2d
+
+  - pattern: "backbone.model.stages.1.2.{b}.0.fn.to_out.weight"
+    indices:
+      b: ${range:4}
+    type: attention_output
+
+  - pattern: "backbone.model.stages.1.2.{b}.1.fn.net.0.weight"
+    indices:
+      b: ${range:4}
+    type: linear
+
+  - pattern: "backbone.model.stages.1.2.{b}.1.fn.net.1.net.0.weight"
+    indices:
+      b: ${range:4}
+    type: depthwise_conv
+
+  - pattern: "backbone.model.stages.1.2.{b}.1.fn.net.1.net.1.weight"
+    indices:
+      b: ${range:4}
+    type: linear
+
+  - pattern: "backbone.model.stages.1.2.{b}.1.fn.net.3.weight"
+    indices:
+      b: ${range:4}
+    type: linear
+
+  # ── Stage 2 ─ 6 blocks, D=320, sr_ratio=2 ──────────────────────────────────
+  - pattern: "backbone.model.stages.2.1.weight"
+    type: linear
+
+  - pattern: "backbone.model.stages.2.2.{b}.0.fn.to_q.weight"
+    indices:
+      b: ${range:6}
+    type: attention_query
+
+  - pattern: "backbone.model.stages.2.2.{b}.0.fn.to_kv.weight"
+    indices:
+      b: ${range:6}
+    type: conv2d
+
+  - pattern: "backbone.model.stages.2.2.{b}.0.fn.to_out.weight"
+    indices:
+      b: ${range:6}
+    type: attention_output
+
+  - pattern: "backbone.model.stages.2.2.{b}.1.fn.net.0.weight"
+    indices:
+      b: ${range:6}
+    type: linear
+
+  - pattern: "backbone.model.stages.2.2.{b}.1.fn.net.1.net.0.weight"
+    indices:
+      b: ${range:6}
+    type: depthwise_conv
+
+  - pattern: "backbone.model.stages.2.2.{b}.1.fn.net.1.net.1.weight"
+    indices:
+      b: ${range:6}
+    type: linear
+
+  - pattern: "backbone.model.stages.2.2.{b}.1.fn.net.3.weight"
+    indices:
+      b: ${range:6}
+    type: linear
+
+  # ── Stage 3 ─ 3 blocks, D=512, sr_ratio=1 ──────────────────────────────────
+  - pattern: "backbone.model.stages.3.1.weight"
+    type: linear
+
+  - pattern: "backbone.model.stages.3.2.{b}.0.fn.to_q.weight"
+    indices:
+      b: ${range:3}
+    type: attention_query
+
+  - pattern: "backbone.model.stages.3.2.{b}.0.fn.to_kv.weight"
+    indices:
+      b: ${range:3}
+    type: conv2d
+
+  - pattern: "backbone.model.stages.3.2.{b}.0.fn.to_out.weight"
+    indices:
+      b: ${range:3}
+    type: attention_output
+
+  - pattern: "backbone.model.stages.3.2.{b}.1.fn.net.0.weight"
+    indices:
+      b: ${range:3}
+    type: linear
+
+  - pattern: "backbone.model.stages.3.2.{b}.1.fn.net.1.net.0.weight"
+    indices:
+      b: ${range:3}
+    type: depthwise_conv
+
+  - pattern: "backbone.model.stages.3.2.{b}.1.fn.net.1.net.1.weight"
+    indices:
+      b: ${range:3}
+    type: linear
+
+  - pattern: "backbone.model.stages.3.2.{b}.1.fn.net.3.weight"
+    indices:
+      b: ${range:3}
+    type: linear
+
+exclude:
+  - "*.bias"
+  - "*.norm.b"              # MiT custom LayerNorm gain
+  - "*.norm.g"              # MiT custom LayerNorm bias
+  - "psp.*"
+  - "fpn.*"
+  - "head.*"
+  - "*running_mean"
+  - "*running_var"
+  - "*num_batches_tracked"
+  
+options:
+  default_k: 3
+  device: "cuda"
+  state_dict_key: "model_state"
+  verbose: true

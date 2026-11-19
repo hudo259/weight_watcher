@@ -1,0 +1,25 @@
+# Used for both classification and segmentation.
+# Task is determined by the argparse subcommand (classification | segmentation).
+#
+#   Classification:  CycleNetClassifier
+#                    backbone -> global average pool -> linear head
+#
+#   Segmentation:    CycleMLPBackbone wrapped in UperNet
+#                    backbone produces [H/4, H/8, H/16, H/32] feature maps
+#                    -> PPM -> FPN -> segmentation head
+#
+# Available variants, change `variant` to swap:
+#
+#   variant  params   dims                       layers
+#   -------  ------   ----                       ------
+#   b1        15M     [64, 128, 320, 512]        [2, 2,  4, 2]
+#   b2        26M     [64, 128, 320, 512]        [2, 3, 10, 3]
+#   b4        52M     [64, 128, 320, 512]        [3, 8, 27, 3]
+#   b5        76M     [96, 192, 384, 768]        [3, 4, 24, 3]
+#
+# fpn_channels controls the UperNet FPN width (ignored for classification).
+# 256 is the standard value from the UperNet paper.
+
+backbone: cyclemlp
+variant: b2
+fpn_channels: 256

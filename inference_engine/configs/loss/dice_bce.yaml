@@ -1,0 +1,7 @@
+# DiceBCELoss for ISIC 2018 binary lesion segmentation.
+# 0.5 * CrossEntropy + 0.5 * SoftDice.
+# Better than plain CE for small binary datasets with class imbalance.
+
+_target_: trainer.common.losses.DiceBCELoss
+ignore_index: 255
+smooth: 1.0e-4

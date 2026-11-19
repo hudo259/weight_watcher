@@ -1,0 +1,105 @@
+# ConvNeXt V2 Base: Segmentation (via UperNet)
+#
+# Key prefix: backbone.model.* (UperNet -> ConvNeXtV2Backbone.model -> ConvNeXtV2)
+# Differs from classification config only in the prefix and no head layer.
+#
+# UperNet decoder layers (psp.*, fpn.*, head.*) are intentionally excluded.
+# They are randomly initialized and not meaningful for trajectory analysis.
+
+name: "ConvNeXtV2_Base_Segmentation"
+architecture: "convnextv2_base"
+
+templates:
+
+  # ── Stem ──────────────────────────────────────────────────────────────────
+  - pattern: "backbone.model.downsample_layers.0.0.weight"
+    type: conv2d
+
+  # ── Downsampling layers ───────────────────────────────────────────────────
+  - pattern: "backbone.model.downsample_layers.{i}.1.weight"
+    indices:
+      i: [1, 2, 3]
+    type: conv2d
+
+  # ── Stage 0  (3 blocks, dim=128) ──────────────────────────────────────────
+  - pattern: "backbone.model.stages.0.{b}.dwconv.weight"
+    indices:
+      b: [0, 1, 2]
+    type: depthwise_conv
+
+  - pattern: "backbone.model.stages.0.{b}.pwconv1.weight"
+    indices:
+      b: [0, 1, 2]
+    type: linear
+
+  - pattern: "backbone.model.stages.0.{b}.pwconv2.weight"
+    indices:
+      b: [0, 1, 2]
+    type: linear
+
+  # ── Stage 1  (3 blocks, dim=256) ──────────────────────────────────────────
+  - pattern: "backbone.model.stages.1.{b}.dwconv.weight"
+    indices:
+      b: [0, 1, 2]
+    type: depthwise_conv
+
+  - pattern: "backbone.model.stages.1.{b}.pwconv1.weight"
+    indices:
+      b: [0, 1, 2]
+    type: linear
+
+  - pattern: "backbone.model.stages.1.{b}.pwconv2.weight"
+    indices:
+      b: [0, 1, 2]
+    type: linear
+
+  # ── Stage 2  (27 blocks, dim=512) ─────────────────────────────────────────
+  - pattern: "backbone.model.stages.2.{b}.dwconv.weight"
+    indices:
+      b: ${range:0,27}
+    type: depthwise_conv
+
+  - pattern: "backbone.model.stages.2.{b}.pwconv1.weight"
+    indices:
+      b: ${range:0,27}
+    type: linear
+
+  - pattern: "backbone.model.stages.2.{b}.pwconv2.weight"
+    indices:
+      b: ${range:0,27}
+    type: linear
+
+  # ── Stage 3  (3 blocks, dim=1024) ─────────────────────────────────────────
+  - pattern: "backbone.model.stages.3.{b}.dwconv.weight"
+    indices:
+      b: [0, 1, 2]
+    type: depthwise_conv
+
+  - pattern: "backbone.model.stages.3.{b}.pwconv1.weight"
+    indices:
+      b: [0, 1, 2]
+    type: linear
+
+  - pattern: "backbone.model.stages.3.{b}.pwconv2.weight"
+    indices:
+      b: [0, 1, 2]
+    type: linear
+
+exclude:
+  - "*.bias"
+  - "*.norm.*"
+  - "*.grn.*"
+  - "backbone.model.head.*"   # pretrained 1000-class head, not used
+  - "backbone.model.norm.*"   # global backbone norm
+  - "psp.*"
+  - "fpn.*"
+  - "head.*"                  # UperNet segmentation head
+  - "*running_mean"
+  - "*running_var"
+  - "*num_batches_tracked"
+
+options:
+  default_k: 3
+  device: "cuda"
+  state_dict_key: "model_state"
+  verbose: true

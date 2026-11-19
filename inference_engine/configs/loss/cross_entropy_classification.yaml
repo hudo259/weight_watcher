@@ -1,0 +1,8 @@
+# CrossEntropyLoss for classification.
+# ignore_index=-100 is PyTorch default (no void class in classification).
+# label_smoothing=0.1 is standard for ImageNet-scale training.
+# For ISIC 2019, class_weights are set on the constructed loss in train.py.
+
+_target_: torch.nn.CrossEntropyLoss
+label_smoothing: 0.1
+ignore_index: -100

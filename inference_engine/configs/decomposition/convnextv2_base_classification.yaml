@@ -1,0 +1,107 @@
+# ConvNeXt V2 Base: Classification
+# Key prefix: backbone.* (ConvNeXtV2Classifier wraps the model as self.backbone directly)
+#
+# Semantic units:
+#   dwconv: one depthwise filter, [1, kH, kW] per output channel
+#   pwconv1/2: one output neuron, [in_features] (nn.Linear)
+#   stem/ds: one output filter, [in_ch, kH, kW] (Conv2d)
+#
+# Skipped: LayerNorm weights, GRN gamma/beta, all biases
+#
+# ConvNeXt V2 Base depths: [3, 3, 27, 3]: stage 2 has 27 blocks (not 9 as in Tiny)
+# ConvNeXt V2 Base dims:   [128, 256, 512, 1024]
+
+# NO HEAD!
+
+name: "ConvNeXtV2_Base_Classification"
+architecture: "convnextv2_base"
+
+templates:
+
+  # ── Stem (patchify: 4×4 stride-4 Conv2d) ──────────────────────────────────
+  - pattern: "backbone.downsample_layers.0.0.weight"
+    type: conv2d
+
+  # ── Stage-to-stage downsampling (2×2 stride-2 Conv2d, index 1 in each Sequential) ─
+  - pattern: "backbone.downsample_layers.{i}.1.weight"
+    indices:
+      i: [1, 2, 3]
+    type: conv2d
+
+  # ── Stage 0  (3 blocks, dim=128) ──────────────────────────────────────────
+  - pattern: "backbone.stages.0.{b}.dwconv.weight"
+    indices:
+      b: [0, 1, 2]
+    type: depthwise_conv
+
+  - pattern: "backbone.stages.0.{b}.pwconv1.weight"
+    indices:
+      b: [0, 1, 2]
+    type: linear
+
+  - pattern: "backbone.stages.0.{b}.pwconv2.weight"
+    indices:
+      b: [0, 1, 2]
+    type: linear
+
+  # ── Stage 1  (3 blocks, dim=256) ──────────────────────────────────────────
+  - pattern: "backbone.stages.1.{b}.dwconv.weight"
+    indices:
+      b: [0, 1, 2]
+    type: depthwise_conv
+
+  - pattern: "backbone.stages.1.{b}.pwconv1.weight"
+    indices:
+      b: [0, 1, 2]
+    type: linear
+
+  - pattern: "backbone.stages.1.{b}.pwconv2.weight"
+    indices:
+      b: [0, 1, 2]
+    type: linear
+
+  # ── Stage 2  (27 blocks, dim=512) — NOTE: 27 blocks, not 9 as in Tiny ─────
+  - pattern: "backbone.stages.2.{b}.dwconv.weight"
+    indices:
+      b: ${range:0,27}
+    type: depthwise_conv
+
+  - pattern: "backbone.stages.2.{b}.pwconv1.weight"
+    indices:
+      b: ${range:0,27}
+    type: linear
+
+  - pattern: "backbone.stages.2.{b}.pwconv2.weight"
+    indices:
+      b: ${range:0,27}
+    type: linear
+
+  # ── Stage 3  (3 blocks, dim=1024) ─────────────────────────────────────────
+  - pattern: "backbone.stages.3.{b}.dwconv.weight"
+    indices:
+      b: [0, 1, 2]
+    type: depthwise_conv
+
+  - pattern: "backbone.stages.3.{b}.pwconv1.weight"
+    indices:
+      b: [0, 1, 2]
+    type: linear
+
+  - pattern: "backbone.stages.3.{b}.pwconv2.weight"
+    indices:
+      b: [0, 1, 2]
+    type: linear
+
+exclude:
+  - "backbone.head.*"
+  - "backbone.norm.*"
+  - "*.grn.*"
+  - "*.norm.*"
+  - "*.bias"
+
+
+options:
+  default_k: 3
+  device: "cuda"
+  state_dict_key: "model_state"
+  verbose: true

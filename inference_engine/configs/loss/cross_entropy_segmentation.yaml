@@ -1,0 +1,7 @@
+# CrossEntropyLoss for segmentation.
+# ignore_index=255 excludes void/boundary pixels (VOC 2012 convention).
+# No label smoothing for segmentation — it hurts boundary prediction.
+
+_target_: torch.nn.CrossEntropyLoss
+label_smoothing: 0.0
+ignore_index: 255

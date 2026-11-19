@@ -1,0 +1,18 @@
+torch
+torchvision
+numpy
+scipy
+pandas
+scikit-learn
+matplotlib
+umap-learn
+opencv-python-headless
+pillow
+einops
+timm
+torchmetrics
+omegaconf
+hydra-core
+pynng
+# only needed for the dice_bce loss config
+segmentation_models_pytorch

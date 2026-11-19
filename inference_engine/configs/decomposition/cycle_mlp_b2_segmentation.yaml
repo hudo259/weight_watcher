@@ -1,0 +1,139 @@
+# Key prefix for segmentation (UperNet) checkpoints: backbone.model.{key}
+#
+# CycleMLP-B2 architecture:
+#   Interleaved block stages and downsampling projections in `network`:
+#     network.0: Stage 0,  2 blocks,  C=64
+#     network.1: Downsample (Conv2d 3x3, stride 2)
+#     network.2: Stage 1,  3 blocks,  C=128
+#     network.3: Downsample
+#     network.4: Stage 2, 10 blocks,  C=320
+#     network.5: Downsample
+#     network.6: Stage 3,  3 blocks,  C=512
+#
+# Per-block layers (all linear — no spatial convolutions in the mixer):
+#   attn.mlp_c: channel mixing projection  [C, C]
+#   attn.sfc_h: cyclic shift along height   [C, C]  (the MLP-Mixer analogue)
+#   attn.sfc_w: cyclic shift along width    [C, C]
+#   attn.reweight.fc1/fc2: reweighting bottleneck MLP
+#   attn.proj: output projection            [C, C]
+#   mlp.fc1/fc2: feed-forward MLP             [4C, C] / [C, 4C]
+#
+# Downsampling:
+#   network.{1,3,5}.proj: Conv2d 3x3 stride 2 (not 1x1, genuine spatial conv)
+#   patch_embed.proj: Conv2d stem embed
+#
+# Skipped:
+#   *.norm*.weight: LayerNorm (1D)
+#   head.weight: classification head
+
+name: CycleMLP_B2_Segmentation
+architecture: cyclemlp_b2
+
+templates:
+
+  # ── Stem patch embedding (Conv2d) ───────────────────────────────────────────
+  - pattern: "backbone.model.patch_embed.proj.weight"
+    type: conv2d
+
+  # ── Downsampling projections (Conv2d 3×3) ───────────────────────────────────
+  - pattern: "backbone.model.network.{ds}.proj.weight"
+    indices:
+      ds: [1, 3, 5]
+    type: conv2d
+
+  # ── Stage 0 — network.0, 2 blocks ───────────────────────────────────────────
+  - pattern: "backbone.model.network.0.{b}.attn.{attr}.weight"
+    indices:
+      b:    ${range:2}
+      attr: [mlp_c, sfc_h, sfc_w, proj]
+    type: linear
+
+  - pattern: "backbone.model.network.0.{b}.attn.reweight.{fc}.weight"
+    indices:
+      b:  ${range:2}
+      fc: [fc1, fc2]
+    type: linear
+
+  - pattern: "backbone.model.network.0.{b}.mlp.{fc}.weight"
+    indices:
+      b:  ${range:2}
+      fc: [fc1, fc2]
+    type: linear
+
+  # ── Stage 1 — network.2, 3 blocks ───────────────────────────────────────────
+  - pattern: "backbone.model.network.2.{b}.attn.{attr}.weight"
+    indices:
+      b:    ${range:3}
+      attr: [mlp_c, sfc_h, sfc_w, proj]
+    type: linear
+
+  - pattern: "backbone.model.network.2.{b}.attn.reweight.{fc}.weight"
+    indices:
+      b:  ${range:3}
+      fc: [fc1, fc2]
+    type: linear
+
+  - pattern: "backbone.model.network.2.{b}.mlp.{fc}.weight"
+    indices:
+      b:  ${range:3}
+      fc: [fc1, fc2]
+    type: linear
+
+  # ── Stage 2 — network.4, 10 blocks ──────────────────────────────────────────
+  - pattern: "backbone.model.network.4.{b}.attn.{attr}.weight"
+    indices:
+      b:    ${range:10}
+      attr: [mlp_c, sfc_h, sfc_w, proj]
+    type: linear
+
+  - pattern: "backbone.model.network.4.{b}.attn.reweight.{fc}.weight"
+    indices:
+      b:  ${range:10}
+      fc: [fc1, fc2]
+    type: linear
+
+  - pattern: "backbone.model.network.4.{b}.mlp.{fc}.weight"
+    indices:
+      b:  ${range:10}
+      fc: [fc1, fc2]
+    type: linear
+
+  # ── Stage 3 — network.6, 3 blocks ───────────────────────────────────────────
+  - pattern: "backbone.model.network.6.{b}.attn.{attr}.weight"
+    indices:
+      b:    ${range:3}
+      attr: [mlp_c, sfc_h, sfc_w, proj]
+    type: linear
+
+  - pattern: "backbone.model.network.6.{b}.attn.reweight.{fc}.weight"
+    indices:
+      b:  ${range:3}
+      fc: [fc1, fc2]
+    type: linear
+
+  - pattern: "backbone.model.network.6.{b}.mlp.{fc}.weight"
+    indices:
+      b:  ${range:3}
+      fc: [fc1, fc2]
+    type: linear
+
+exclude:
+  - "*.bias"
+  - "*.norm1.weight"
+  - "*.norm2.weight"
+  - "backbone.model.norm0.weight"
+  - "backbone.model.norm2.weight"
+  - "backbone.model.norm4.weight"
+  - "backbone.model.norm6.weight"
+  - "psp.*"
+  - "fpn.*"
+  - "head.*"
+  - "*running_mean"
+  - "*running_var"
+  - "*num_batches_tracked"
+
+options:
+  default_k: 3
+  device: "cuda"
+  state_dict_key: "model_state"
+  verbose: true

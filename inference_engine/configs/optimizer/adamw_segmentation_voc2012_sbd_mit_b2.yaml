@@ -1,0 +1,16 @@
+# AdamW optimizer for segmentation.
+# Lower LR than classification — backbone is doing a harder dense-prediction
+# task and is more sensitive to large gradient updates.
+# Longer warmup (10 epochs) — UperNet decoder starts randomly initialised.
+
+_target_: torch.optim.AdamW
+lr: 6.0e-5
+weight_decay: 0.05
+betas: [0.9, 0.999]
+eps: 1.0e-8
+
+# Trainer metadata (not AdamW constructor args):
+backbone_lr_scale: 0.6
+warmup_epochs: 10
+min_lr: 1.0e-6
+scheduler: cosine

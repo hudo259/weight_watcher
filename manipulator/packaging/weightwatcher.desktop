@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=WeightWatcher
+Exec=WeightWatcher_Manipulator
+Icon=weightwatcher
+Categories=Science;DataVisualization;ArtificialIntelligence;

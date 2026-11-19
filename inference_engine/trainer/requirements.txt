@@ -1,0 +1,10 @@
+torch
+torchvision
+timm
+einops
+numpy
+segmentation-models-pytorch
+torchmetrics
+omegaconf
+tensorboard
+hydra-core

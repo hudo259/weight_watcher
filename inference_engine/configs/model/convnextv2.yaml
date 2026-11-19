@@ -1,0 +1,26 @@
+# Used for both classification and segmentation.
+# Task is determined by the argparse subcommand (classification | segmentation).
+#
+#   Classification:  ConvNeXtV2Classifier
+#                    backbone.forward(): logits via built-in GAP + linear head
+#
+#   Segmentation:    ConvNeXtV2Backbone wrapped in UperNet
+#                    backbone.forward_multiscale() produces [H/4, H/8, H/16, H/32]
+#                    feature maps (does NOT apply final norm or GAP)
+#
+# Available variants, change `variant` to swap:
+#
+#   variant   params   dims                          depths
+#   -------   ------   ----                          ------
+#   tiny        29M    [96,  192,  384,  768]        [3, 3,  9, 3]
+#   base        89M    [128, 256,  512, 1024]        [3, 3, 27, 3]
+#   large      198M    [192, 384,  768, 1536]        [3, 3, 27, 3]
+#
+# ConvNeXt V2 block: depthwise 7x7 conv -> LayerNorm -> 2× pointwise Linear -> GRN
+# pwconv1/2 are nn.Linear (not Conv2d), they decompose as 'linear' type in PCA.
+# dwconv decomposes as 'depthwise_conv'.
+# GRN (Global Response Normalization) has no spatial weights, skip in PCA.
+
+backbone: convnextv2
+variant: base
+fpn_channels: 256
